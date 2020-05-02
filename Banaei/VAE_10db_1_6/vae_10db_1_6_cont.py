@@ -22,7 +22,7 @@ from keras.layers import Input, Dense, Lambda
 from keras.layers import Conv2D, MaxPooling2D, Flatten
 #%%
 #make a 'saves' directory beside code to save callbacks and logs
-save_directory = 'saves/'
+save_directory = 'saves3/'
 
 #%%
 
@@ -42,15 +42,16 @@ k = 8*8*16
 n = 32*32*3
 sqrtk = np.sqrt(k)
 c = k//64
-snr = None  #set SENR here
+snr = 10  #set SENR here
 p = 1
 std = np.sqrt(p / math.pow(10, snr/10))
 width = 32
 height = 32
 batch_size = 64
 nb_epochs = 150
-#%%
 
+print(std, 'k/n=', k/(2*n))
+#%%
 K.clear_session()
 tf.set_random_seed(0)
 np.random.seed(0)
@@ -161,28 +162,30 @@ def PSNR(y_true, y_pred):
 
 
 def schedule(epoch, lr):
-    lr = 0.001
-
-    if epoch > 2000:
-        lr = float(0.0000001)
-    elif epoch > 200:
-        lr = float(0.000001)
-    elif epoch > 50:
-        lr = float(0.00001)
-    elif epoch > 10:
-        lr = float(0.0001)
-
+    lr = 0.0001
+    if epoch > 850:
+        lr = 0.00001
     return lr
 
 
+
 lrate = keras.callbacks.LearningRateScheduler(schedule, verbose=1)
-chckpnt = keras.ModelCheckpoint(save_directory + '/weights.{epoch}-{val_PSNR:.2f}.h5',
+chckpnt = keras.callbacks.ModelCheckpoint(save_directory + '/vae_10db_1_6_weights.{epoch}-{val_PSNR:.2f}.h5',
                                                     monitor='val_PSNR', verbose=0, save_best_only=False,
                                                     save_weights_only=True, mode='auto', period=100)
-csv = keras.callbacks.CSVLogger(save_directory + '/logs.log', separator=',', append=True)
-opt = keras.optimizers.Adam(lr=0.001, clipvalue=1)
+csv = keras.callbacks.CSVLogger(save_directory + '/vae_10db_1_6_3rd.log', separator=',', append=True)
+opt = keras.optimizers.Adam(lr=0.0001, clipvalue=1)
 
 vae.compile(optimizer=opt, loss=VAE_loss, metrics=[PSNR])
 
+vae.load_weights('saves2/vae_10db_1_6_weights.1000-25.53.h5')
+
+print(vae.evaluate(X_test_norm, X_test_norm)[1])
+
+
 vae.fit(X_train_norm, X_train_norm, shuffle=True, epochs=1000, batch_size=64,
         validation_data=(X_validation_norm, X_validation_norm), callbacks=[lrate, chckpnt, csv])
+
+f = open(save_directory + '/result_round2_2200.txt', 'a')
+f.write(str(vae.evaluate(X_test_norm, X_test_norm)))
+f.close()
