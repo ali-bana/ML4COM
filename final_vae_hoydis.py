@@ -176,7 +176,7 @@ def schedule(epoch, lr):
 
 
 lrate = keras.callbacks.LearningRateScheduler(schedule, verbose=1)
-chckpnt = keras.ModelCheckpoint(save_directory + '/weights.{epoch}-{val_PSNR:.2f}.h5',
+chckpnt = keras.callbacks.ModelCheckpoint(save_directory + '/weights.{epoch}-{val_PSNR:.2f}.h5',
                                                     monitor='val_PSNR', verbose=0, save_best_only=False,
                                                     save_weights_only=True, mode='auto', period=100)
 csv = keras.callbacks.CSVLogger(save_directory + '/logs.log', separator=',', append=True)
