@@ -22,7 +22,7 @@ from keras.layers import Input, Dense, Lambda
 from keras.layers import Conv2D, MaxPooling2D, Flatten
 #%%
 #make a 'saves' directory beside code to save callbacks and logs
-save_directory = 'save/'
+save_directory = 'saves1/'
 
 #%%
 
@@ -37,17 +37,16 @@ X_test_norm = X_test/255
 X_validation_norm = X_validation/255
 
 #%%
-k = 8 * 8 * 16
+k = 8 * 8 * 8
 n = 32*32*3
 #Make sure we devide k by two in the line below
 sqrtk = np.sqrt(k / 2)
 c = k // 64
-snr = None
+snr = 0
 p = 1
 var = p / math.pow(10, snr / 10)
 var = var/2 #var should be devided by 2
 std = np.sqrt(var)
-np.random.seed(1000)
 width = 32
 height = 32
 batch_size = 64
@@ -164,21 +163,26 @@ def PSNR(y_true, y_pred):
 
 def schedule(epoch, lr):
     #TODO compelete the scheduler
-    lr = 0.0001
+    if epoch < 640:
+        lr = 0.001
+    else:
+        lr = 0.0001
     return lr
-    pass
 
 
 lrate = keras.callbacks.LearningRateScheduler(schedule, verbose=1)
-chckpnt = keras.callbacks.ModelCheckpoint(save_directory + 'weights.{epoch}-{val_PSNR:.2f}.h5',
+chckpnt = keras.callbacks.ModelCheckpoint(save_directory + 'vae_0db_1_12_weights.{epoch}-{val_PSNR:.2f}.h5',
                                                     monitor='val_PSNR', verbose=0, save_best_only=False,
                                                     save_weights_only=True, mode='auto', period=100)
-csv = keras.callbacks.CSVLogger(save_directory + 'logs.log', separator=',', append=True)
+csv = keras.callbacks.CSVLogger(save_directory + 'vae_0db_1_12.log', separator=',', append=True)
 opt = keras.optimizers.Adam(lr=0.001)
 
 vae.compile(optimizer=opt, loss=VAE_loss, metrics=[PSNR])
 #TODO uncomment line below to load weights
 
 # vae.load_weights()
-vae.fit(X_train_norm, X_train_norm, shuffle=True, epochs=1000, batch_size=64,
+vae.fit(X_train_norm, X_train_norm, shuffle=True, epochs=5000, batch_size=64,
         validation_data=(X_validation_norm, X_validation_norm), callbacks=[lrate, chckpnt, csv])
+
+for i in range(10):
+    print(vae.evaluate(X_test_norm, X_test_norm))
