@@ -1,19 +1,25 @@
-#%%
 import matplotlib.pyplot as plt
+import pandas as pd
+logs = pd.DataFrame.from_csv(path='Banaei/ae_0db_1_6_new_noise/ae_0db_1_6_nnoise_cont3.log')
 
 
-def schedule(epoch, lr):
-    if epoch < 640:
-        lr = 0.001
-    elif epoch < 2700:
-        lr = 0.0001
-    else:
-        lr = 0.00001
-    return lr
+
+#%%
+print(logs)
+
+#%%
+import numpy as np
+psnrs = logs['val_PSNR'].to_numpy()
+epchs = np.array([_ for _ in range(psnrs.shape[0])])
+#%%
 
 
-x = [_ for _ in range(3000)]
-y = [schedule(_, 0) for _ in x]
+def plot_psnrs(psnrs, epchs):
+    f = np.polyfit(epchs, psnrs, 1)
+    print(f)
+    plt.plot(epchs, psnrs)
+    plt.plot(epchs, epchs * f[0] + f[1])
+    plt.show()
 
-plt.plot(x[2500:], y[2500:])
-plt.show()
+#%%
+plot_psnrs(psnrs, epchs)

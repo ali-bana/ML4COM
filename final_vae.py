@@ -37,18 +37,23 @@ X_test_norm = X_test/255
 X_validation_norm = X_validation/255
 
 #%%
-
-k = 8*8*16
+k = 8 * 8 * 16
 n = 32*32*3
-sqrtk = np.sqrt(k)
-c = k//64
-snr = None  #set SENR here
+#Make sure we devide k by two in the line below
+sqrtk = np.sqrt(k / 2)
+c = k // 64
+snr = None
 p = 1
-std = np.sqrt(p / math.pow(10, snr/10))
+var = p / math.pow(10, snr / 10)
+var = var/2 #var should be devided by 2
+std = np.sqrt(var)
+np.random.seed(1000)
 width = 32
 height = 32
 batch_size = 64
-nb_epochs = 150
+nb_epochs = 15
+code_length = 128
+print(std, std ** 2, 'k/n: ', k / (2 * n))
 #%%
 
 K.clear_session()
@@ -90,20 +95,18 @@ z = Flatten()(z)
 
 class ChannelNormalizer(Layer):
 
-  def __init__(self,sqrtk, **kwargs):
-#     self.output_dim = output_dim
-    self.sqrtk=sqrtk
-    super(ChannelNormalizer, self).__init__(**kwargs)
+    def __init__(self, sqrtk, **kwargs):
+        self.sqrtk = sqrtk
+        super(ChannelNormalizer, self).__init__(**kwargs)
 
-  def build(self, input_shape):
-    super(ChannelNormalizer, self).build(input_shape)  # Be sure to call this at the end
+    def build(self, input_shape):
+        super(ChannelNormalizer, self).build(input_shape)  # Be sure to call this at the end
 
-  def call(self, x):
-    #return self.sqrtk*K.l2_normalize(x,axis=1)
-       #return self.sqrtk*x/tf.sqrt(tf.transpose(x, conjugate=True,perm=[0,1])*x)
-       return x/tf.sqrt(2*tf.reduce_mean(tf.square(x)))
-  def compute_output_shape(self, input_shape):
-    return input_shape
+    def call(self, x):
+        return self.sqrtk * K.l2_normalize(x, axis=1)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 
 z = ChannelNormalizer(sqrtk, name='normal')(z)
@@ -147,42 +150,31 @@ vae = Model(input, x_out)
 from keras import metrics
 
 
-def VAE_loss(x_origin, x_out):
-    kl_tolerance = 2
-    reconstruction_loss = tf.reduce_mean(tf.reduce_sum(tf.square(x_origin - x_out), axis=[1, 2, 3]))
+def VAE_loss(x_origin,x_out):
+    kl_tolerance = k/(32*32*3)
+    reconstruction_loss = tf.reduce_mean(tf.reduce_sum(tf.square(x_origin- x_out), axis=[1, 2, 3]))
     kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-    kl_loss = tf.reduce_mean(tf.maximum(kl_loss, kl_tolerance * (32 * 32 * 3)))
+    kl_loss = tf.reduce_mean(tf.maximum(kl_loss, kl_tolerance * (32*32*3)))
     loss_sum = reconstruction_loss + kl_loss
-    return loss_sum
-
 
 def PSNR(y_true, y_pred):
     return 10 * K.log(K.max(y_true) ** 2 / (K.mean(K.square(y_pred - y_true)))) / K.log(10.0)
 
 
 def schedule(epoch, lr):
-    lr = 0.001
-
-    if epoch > 2000:
-        lr = float(0.0000001)
-    elif epoch > 200:
-        lr = float(0.000001)
-    elif epoch > 50:
-        lr = float(0.00001)
-    elif epoch > 10:
-        lr = float(0.0001)
-
-    return lr
+    #TODO compelete the scheduler
+    pass
 
 
 lrate = keras.callbacks.LearningRateScheduler(schedule, verbose=1)
-chckpnt = keras.callbacks.ModelCheckpoint(save_directory + '/weights.{epoch}-{val_PSNR:.2f}.h5',
+chckpnt = keras.callbacks.ModelCheckpoint(save_directory + 'weights.{epoch}-{val_PSNR:.2f}.h5',
                                                     monitor='val_PSNR', verbose=0, save_best_only=False,
                                                     save_weights_only=True, mode='auto', period=100)
-csv = keras.callbacks.CSVLogger(save_directory + '/logs.log', separator=',', append=True)
+csv = keras.callbacks.CSVLogger(save_directory + 'logs.log', separator=',', append=True)
 opt = keras.optimizers.Adam(lr=0.001, clipvalue=1)
 
 vae.compile(optimizer=opt, loss=VAE_loss, metrics=[PSNR])
-
+#TODO uncomment line below to load weights
+# vae.load_weights()
 vae.fit(X_train_norm, X_train_norm, shuffle=True, epochs=1000, batch_size=64,
         validation_data=(X_validation_norm, X_validation_norm), callbacks=[lrate, chckpnt, csv])

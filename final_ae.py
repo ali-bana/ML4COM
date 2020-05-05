@@ -11,7 +11,7 @@ from keras.models import Sequential
 from keras import backend as K
 import math
 
-save_directory = 'saves'
+save_directory = 'saves/'
 
 # Load dataset
 (X_train, Y_train), (X_test, Y_test) = cifar10.load_data()
@@ -28,7 +28,9 @@ sqrtk = np.sqrt(k / 2)
 c = k // 64
 snr = 0
 p = 1
-std = np.sqrt(p / math.pow(10, snr / 10))
+var = p / math.pow(10, snr / 10)
+var = var/2 #to make it complex
+std = np.sqrt(var)
 n = 32 * 32 * 3
 np.random.seed(1000)
 width = 32
@@ -136,26 +138,25 @@ def PSNR(y_true, y_pred):
 
 
 def schedule(epoch, lr):
-    if epoch < 640:
-        lr = 0.001
-    else:
-        lr = 0.0001
-    return lr
+    #TODO fill scheduler here
+    pass
 
 
 # from google.colab import files
 lrate = keras.callbacks.LearningRateScheduler(schedule, verbose=1)
-chckpnt = keras.callbacks.ModelCheckpoint(save_directory + '/ae_0db_1_6_weights.{epoch}-{val_PSNR:.2f}.h5',
+chckpnt = keras.callbacks.ModelCheckpoint(save_directory + 'ae_0db_1_6__nnoise_weights.{epoch}-{val_PSNR:.2f}.h5',
                                           monitor='val_PSNR', verbose=0, save_best_only=False,
-                                          save_weights_only=True, mode='auto', period=1)
-csv = keras.callbacks.CSVLogger(save_directory + '/ae_0db_1_6.log', separator=',', append=True)
+                                          save_weights_only=True, mode='auto', period=100)
+csv = keras.callbacks.CSVLogger(save_directory + 'ae_0db_1_6_nnoise.log', separator=',', append=True)
 opt = keras.optimizers.Adam(lr=0.001)
 model.compile(loss='mse', optimizer=opt, metrics=[PSNR])
-
+# TODO uncomment part below to load weights and continue learning
+# model.load_weights()
 model.fit(X_train_norm, X_train_norm,
           batch_size=64,
-          epochs=6,
+          epochs=3000,
           validation_data=(X_validation_norm, X_validation_norm),
           shuffle=True,
           callbacks=[lrate, csv, chckpnt])
+
 
