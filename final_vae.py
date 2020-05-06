@@ -57,7 +57,7 @@ print(std, std ** 2, 'k/n: ', k / (2 * n))
 #%%
 
 K.clear_session()
-tf.set_random_seed(0)
+#tf.set_random_seed(0)
 np.random.seed(0)
 
 #from keras.mode import Model
@@ -83,7 +83,7 @@ z_log_var = Conv2D(c,(5,5),padding = 'same', strides = 1,activation='relu')(enco
 #reparameterization trick
 def sampling(args):
     z_mean, z_log_var = args
-    epsilon = K.random_normal(shape=(K.shape(z_mean)[0],K.shape(z_mean)[1],K.shape(z_mean)[2],K.shape(z_mean)[3]), mean=0.,
+    epsilon = tf.random.normal(shape=(K.shape(z_mean)[0],K.shape(z_mean)[1],K.shape(z_mean)[2],K.shape(z_mean)[3]), mean=0.,
                               stddev=1.0)
     return z_mean + K.exp(z_log_var / 2) * epsilon
 
