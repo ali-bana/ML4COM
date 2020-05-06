@@ -123,7 +123,7 @@ class ChannelNoise(Layer):
     super(ChannelNoise, self).build(input_shape)
 
   def call(self, x):
-    return x + tf.random.normal(self.inshape[1:], mean = 0, stddev = self.sigma)
+    return x + K.random_normal(self.inshape[1:], mean = 0, stddev = self.sigma)
 
   def compute_output_shape(self, input_shape):
     return input_shape
