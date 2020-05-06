@@ -9,7 +9,7 @@ import tensorflow as tf
 import math
 import numpy as np
 from keras.models import Model
-from keras.layers import Layer, PReLU, Conv2D, Activation, Conv2DTranspose , GaussianNoise,Lambda, Flatten, Reshape,BatchNormalization,Reshape
+from keras.layers import Layer, PReLU, Conv2D, Activation, Conv2DTranspose , GaussianNoise,Lambda, Flatten, Dropout,BatchNormalization,Reshape
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
 import keras
@@ -134,10 +134,12 @@ z = ChannelNoise(std)(z)
 z = Reshape([8,8,c])(z)
 conv_0T = Conv2DTranspose(32,(5,5), padding = 'same', strides = 1,activation='relu')(z)
 conv_0T = BatchNormalization()(conv_0T)
+conv_0T = Dropout(0.1)(conv_0T)
 conv_1T = Conv2DTranspose(32,(5,5), padding = 'same', strides = 1,activation='relu')(conv_0T)
 conv_1T = BatchNormalization()(conv_1T)
 conv_2T = Conv2DTranspose(32,(5,5), padding = 'same', strides = 1,activation='relu')(conv_1T)
 conv_2T = BatchNormalization()(conv_2T)
+conv_2T = Dropout(0.1)(conv_2T)
 conv_3T = Conv2DTranspose(16,(5,5), padding = 'same', strides = 2,activation='relu')(conv_2T)
 conv_3T = BatchNormalization()(conv_3T)
 x_out = Conv2DTranspose(3,(5,5), padding = 'same', strides = 2,activation='sigmoid')(conv_3T)

@@ -123,7 +123,7 @@ class ChannelNoise(Layer):
     super(ChannelNoise, self).build(input_shape)
 
   def call(self, x):
-    return x + K.random_normal(self.inshape[1:], mean = 0, stddev = self.sigma)
+    return x + tf.random.normal(self.inshape[1:], mean = 0, stddev = self.sigma)
 
   def compute_output_shape(self, input_shape):
     return input_shape
@@ -151,11 +151,10 @@ from keras import metrics
 
 
 def VAE_loss(x_origin,x_out):
-    kl_tolerance = k/(32*32*3)
     reconstruction_loss = tf.reduce_mean(tf.reduce_sum(tf.square(x_origin- x_out), axis=[1, 2, 3]))
     kl_loss = - 0.5 * K.sum(1 + z_log_var - K.square(z_mean) - K.exp(z_log_var), axis=-1)
-    kl_loss = tf.reduce_mean(tf.maximum(kl_loss, kl_tolerance * (32*32*3)))
-    loss_sum = reconstruction_loss + kl_loss
+    kl_loss = tf.reduce_mean(kl_loss)
+    loss_sum = kl_loss + 32*32*3 * reconstruction_loss
     return loss_sum
 
 def PSNR(y_true, y_pred):
