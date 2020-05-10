@@ -9,7 +9,7 @@ print(logs)
 
 #%%
 import numpy as np
-psnrs = logs['val_PSNR'].to_numpy()
+psnrs = logs['val_PSNR'].to_numpy()[900:]
 epchs = np.array([_ for _ in range(psnrs.shape[0])])
 #%%
 

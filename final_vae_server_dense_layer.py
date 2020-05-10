@@ -22,7 +22,7 @@ from keras.layers import Input, Dense, Lambda
 from keras.layers import Conv2D, MaxPooling2D, Flatten
 #%%
 #make a 'saves' directory beside code to save callbacks and logs
-save_directory = 'saves1/'
+save_directory = 'save/'
 
 #%%
 
@@ -37,12 +37,12 @@ X_test_norm = X_test/255
 X_validation_norm = X_validation/255
 
 #%%
-k = 8 * 8 * 8
+k = 8 * 8 * 16
 n = 32*32*3
 #Make sure we devide k by two in the line below
 sqrtk = np.sqrt(k / 2)
 c = k // 64
-snr = 0
+snr = None
 p = 1
 var = p / math.pow(10, snr / 10)
 var = var/2 #var should be devided by 2
@@ -72,10 +72,12 @@ conv_3 = Conv2D(32,(5,5),padding = 'same', strides = 1,activation='relu')(conv_2
 conv_4 = Conv2D(32,(5,5),padding = 'same', strides = 1,activation='relu')(conv_3)
 # conv_4 = BatchNormalization()(conv_4)
 encoded = Conv2D(c,(5,5),padding = 'same', strides = 1,activation='relu')(conv_4)
+encoded = Flatten()(encoded)
 
-
-z_mean = Conv2D(c,(5,5),padding = 'same', strides = 1,activation='relu')(encoded)
-z_log_var = Conv2D(c,(5,5),padding = 'same', strides = 1,activation='relu')(encoded)
+z_mean = Dense(k, activation='elu')(encoded)
+z_mean = Reshape([8,8,c])(z_mean)
+z_log_var = Dense(k, activation='elu')(encoded)
+z_log_var = Reshape([8,8,c])(z_log_var)
 
 #%%
 
@@ -163,27 +165,21 @@ def PSNR(y_true, y_pred):
 
 def schedule(epoch, lr):
     #TODO compelete the scheduler
-    if epoch < 640:
-        lr = 0.001
-    else:
-        lr = 0.0001
+    lr = 0.0001
     return lr
+    pass
 
 
 lrate = keras.callbacks.LearningRateScheduler(schedule, verbose=1)
-chckpnt = keras.callbacks.ModelCheckpoint(save_directory + 'weights_vae_0db_1_12.{epoch}-{val_PSNR:.2f}.h5',
+chckpnt = keras.callbacks.ModelCheckpoint(save_directory + 'weights.{epoch}-{val_PSNR:.2f}.h5',
                                                     monitor='val_PSNR', verbose=0, save_best_only=False,
                                                     save_weights_only=True, mode='auto', period=100)
-csv = keras.callbacks.CSVLogger(save_directory + 'vae_0db_1_12.log', separator=',', append=True)
+csv = keras.callbacks.CSVLogger(save_directory + 'logs.log', separator=',', append=True)
 opt = keras.optimizers.Adam(lr=0.001)
 
 vae.compile(optimizer=opt, loss=VAE_loss, metrics=[PSNR])
 #TODO uncomment line below to load weights
 
 # vae.load_weights()
-vae.fit(X_train_norm, X_train_norm, shuffle=True, epochs=5000, batch_size=64,
+vae.fit(X_train_norm, X_train_norm, shuffle=True, epochs=1000, batch_size=64,
         validation_data=(X_validation_norm, X_validation_norm), callbacks=[lrate, chckpnt, csv])
-
-
-for i in range(10):
-    print(vae.evaluate(X_test_norm, X_test_norm))

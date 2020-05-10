@@ -22,7 +22,7 @@ from keras.layers import Input, Dense, Lambda
 from keras.layers import Conv2D, MaxPooling2D, Flatten
 #%%
 #make a 'saves' directory beside code to save callbacks and logs
-save_directory = 'saves1/'
+save_directory = 'saves0/'
 
 #%%
 
@@ -42,7 +42,7 @@ n = 32*32*3
 #Make sure we devide k by two in the line below
 sqrtk = np.sqrt(k / 2)
 c = k // 64
-snr = 0
+snr = 10
 p = 1
 var = p / math.pow(10, snr / 10)
 var = var/2 #var should be devided by 2
@@ -171,10 +171,10 @@ def schedule(epoch, lr):
 
 
 lrate = keras.callbacks.LearningRateScheduler(schedule, verbose=1)
-chckpnt = keras.callbacks.ModelCheckpoint(save_directory + 'weights_vae_0db_1_12.{epoch}-{val_PSNR:.2f}.h5',
+chckpnt = keras.callbacks.ModelCheckpoint(save_directory + 'vae_10db_1_12_weights.{epoch}-{val_PSNR:.2f}.h5',
                                                     monitor='val_PSNR', verbose=0, save_best_only=False,
                                                     save_weights_only=True, mode='auto', period=100)
-csv = keras.callbacks.CSVLogger(save_directory + 'vae_0db_1_12.log', separator=',', append=True)
+csv = keras.callbacks.CSVLogger(save_directory + 'vae_10db_1_12.log', separator=',', append=True)
 opt = keras.optimizers.Adam(lr=0.001)
 
 vae.compile(optimizer=opt, loss=VAE_loss, metrics=[PSNR])
@@ -183,7 +183,3 @@ vae.compile(optimizer=opt, loss=VAE_loss, metrics=[PSNR])
 # vae.load_weights()
 vae.fit(X_train_norm, X_train_norm, shuffle=True, epochs=5000, batch_size=64,
         validation_data=(X_validation_norm, X_validation_norm), callbacks=[lrate, chckpnt, csv])
-
-
-for i in range(10):
-    print(vae.evaluate(X_test_norm, X_test_norm))
